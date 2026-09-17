@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#090b0d">
+  <title>MEGURO // OUTBREAK</title>
+  <meta name="description" content="目黒の街を舞台に、生存者を救助して避難所を目指す地図型サバイバルゲームのプロトタイプ。">
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <style>
+    :root{--ink:#edf1ed;--muted:#8f9992;--night:#090b0d;--panel:rgba(9,12,14,.9);--line:rgba(255,255,255,.12);--acid:#dfff00;--danger:#ff4b36;--cyan:#70f5d3}
+    *{box-sizing:border-box}
+    html,body,#app,#map{width:100%;height:100%;margin:0;overflow:hidden;background:var(--night);font-family:Inter,"Helvetica Neue",Arial,"Noto Sans JP",sans-serif;color:var(--ink)}
+    button{font:inherit}
+    #map{position:absolute;inset:0;background:#111518;cursor:crosshair}
+    .leaflet-tile-pane{filter:grayscale(1) brightness(.48) contrast(1.35) sepia(.08)}
+    .leaflet-control-attribution{background:rgba(5,7,8,.76)!important;color:#9aa19d!important;font-size:10px!important}
+    .leaflet-control-attribution a{color:#d1d7d2!important}
+    .hud{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));pointer-events:none;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+    .brand{display:flex;align-items:center;gap:12px;width:max-content;max-width:100%;padding:10px 12px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px)}
+    .brand-mark{width:9px;height:9px;background:var(--danger);box-shadow:0 0 18px rgba(255,75,54,.85)}
+    .brand h1{font-size:13px;letter-spacing:.18em;margin:0;font-weight:800;white-space:nowrap}
+    .brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.1em;margin-top:3px}
+    .stats{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);backdrop-filter:blur(12px)}
+    .stat{min-width:91px;background:var(--panel);padding:10px 12px}
+    .stat-label{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;margin-bottom:5px}
+    .stat-value{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px;line-height:1;font-weight:700}
+    .stat-value strong{color:var(--acid)}
+    .meter{height:4px;background:#303638;margin-top:7px;overflow:hidden}
+    .meter>i{display:block;height:100%;width:100%;background:var(--acid);transition:width .16s linear}
+    #healthFill{background:var(--danger)}
+    .objective{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));pointer-events:none;width:min(390px,calc(100vw - 190px));background:var(--panel);border-left:3px solid var(--acid);padding:13px 15px;backdrop-filter:blur(12px)}
+    .objective b{display:block;font-size:12px;letter-spacing:.14em;color:var(--acid);margin-bottom:5px}
+    .objective span{font-size:14px;line-height:1.5}
+    .route-key{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));top:max(80px,calc(env(safe-area-inset-top) + 80px));display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--panel);border:1px solid var(--line);color:#c7d4cf;font-size:12px;font-weight:700;letter-spacing:.06em;backdrop-filter:blur(10px);pointer-events:none}
+    .route-key i{display:block;width:25px;height:4px;border-radius:4px;background:var(--cyan);box-shadow:0 0 9px rgba(112,245,211,.85)}
+    .edge-indicators{position:fixed;z-index:706;inset:0;pointer-events:none;overflow:hidden}
+    .edge-indicator{position:absolute;width:42px;height:42px;transform:translate(-50%,-50%);filter:drop-shadow(0 0 8px rgba(0,234,255,.7))}
+    .edge-indicator i{position:absolute;inset:0;transition:transform .12s linear}
+    .edge-indicator i:after{content:"";position:absolute;right:-4px;top:13px;border-left:11px solid #00eaff;border-top:8px solid transparent;border-bottom:8px solid transparent}
+    .edge-indicator b{position:absolute;left:9px;top:9px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#071619;border:2px solid #00eaff;color:#8ff7ff;font:900 16px/1 ui-monospace,monospace}
+    .edge-indicator span{position:absolute;left:50%;top:43px;transform:translateX(-50%);padding:3px 6px;background:rgba(8,10,11,.9);border:1px solid rgba(0,234,255,.45);color:#8ff7ff;font:700 10px/1 ui-monospace,monospace;white-space:nowrap}
+    .action{--energy:100;--ring-color:var(--acid);position:fixed;z-index:710;right:max(20px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));width:62px;height:62px;border-radius:50%;border:1px solid rgba(223,255,0,.34);background:rgba(18,23,18,.94);color:var(--acid);font-size:12px;font-weight:800;letter-spacing:.08em;box-shadow:0 0 0 8px rgba(5,7,8,.76),0 0 26px rgba(223,255,0,.1);touch-action:none;cursor:pointer;isolation:isolate}
+    .action:before{content:"";position:absolute;z-index:-1;inset:-10px;border-radius:50%;background:conic-gradient(var(--ring-color) calc(var(--energy)*1%),rgba(255,255,255,.14) 0);transform:rotate(-90deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+    .action:active,.action.active{background:var(--acid);color:#0a0c09;transform:scale(.96)}
+    .action.low{--ring-color:#ff8a00;color:#ff9a24;border-color:rgba(255,138,0,.6);animation:energyBlink .62s steps(2,end) infinite}
+    .action.low.active{background:#ff8a00;color:#110b02}
+    .action.exhausted{background:rgba(47,24,13,.95);color:#ff8a00;letter-spacing:.02em}
+    @keyframes energyBlink{50%{box-shadow:0 0 0 8px rgba(5,7,8,.76),0 0 30px rgba(255,112,0,.75);filter:brightness(1.4)}}
+    .mine-action{position:fixed;z-index:710;right:max(102px,calc(env(safe-area-inset-right) + 102px));bottom:max(26px,env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:1px solid rgba(255,138,0,.7);background:rgba(24,18,13,.95);color:#ff9a24;font-size:11px;font-weight:900;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 0 5px rgba(5,7,8,.72),0 0 18px rgba(255,112,0,.18)}
+    .mine-action span{position:absolute;right:-4px;top:-5px;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ff8a00;color:#160b00;font:900 12px/1 ui-monospace,monospace;border:2px solid #090b0d}
+    .mine-action:active{background:#ff8a00;color:#160b00;transform:scale(.95)}
+    .mine-action:disabled{filter:grayscale(1);opacity:.42;cursor:not-allowed}
+    .scan{position:fixed;z-index:400;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0,transparent 4px,rgba(255,255,255,.018) 5px)}
+    .vignette{position:fixed;z-index:401;inset:0;pointer-events:none;box-shadow:inset 0 0 130px 26px rgba(0,0,0,.72)}
+    .modal{position:fixed;z-index:1000;inset:0;background:rgba(4,6,7,.86);display:grid;place-items:center;padding:22px;backdrop-filter:blur(7px);transition:opacity .35s ease}
+    .modal.hidden{opacity:0;pointer-events:none}
+    .card{position:relative;width:min(590px,100%);padding:34px;background:#0b0e10;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 90px rgba(0,0,0,.65)}
+    .eyebrow{color:var(--danger);font:700 11px/1.2 ui-monospace,monospace;letter-spacing:.2em;margin-bottom:18px}
+    .card h2{font-size:clamp(34px,8vw,72px);line-height:.88;letter-spacing:-.07em;margin:0 0 24px;max-width:520px}
+    .card p{color:#b4bcb7;line-height:1.75;font-size:15px;margin:0 0 20px;max-width:480px}
+    .legend{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:24px 0}
+    .legend div{border-top:1px solid var(--line);padding-top:10px;color:var(--muted);font-size:12px}
+    .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
+    .primary{display:inline-flex;align-items:center;justify-content:space-between;width:100%;border:0;background:var(--acid);color:#090b0d;padding:16px 18px;font-weight:900;letter-spacing:.08em;cursor:pointer}
+    .primary:hover{filter:brightness(.9)}
+    .primary:disabled{opacity:.45;cursor:wait}
+    .status{font:12px/1.5 ui-monospace,monospace;color:var(--muted);margin-top:12px;min-height:18px}
+    .toast{position:fixed;z-index:900;left:50%;top:96px;transform:translate(-50%,-20px);background:var(--ink);color:#0c100e;padding:11px 16px;font-size:13px;font-weight:800;letter-spacing:.05em;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .player-icon,.zombie-icon,.survivor-icon,.shelter-icon,.follower-icon{background:none!important;border:0!important}
+    .player-dot{width:4px;height:4px;border-radius:50%;background:var(--acid);box-shadow:0 0 4px 1px rgba(223,255,0,.9)}
+    .zombie-dot{width:4px;height:4px;border-radius:50%;background:#ff2bd6;box-shadow:0 0 5px 2px rgba(255,43,214,.9);animation:pulse 1.2s infinite}
+    @keyframes pulse{50%{opacity:.65;box-shadow:0 0 8px 3px rgba(255,43,214,1)}}
+    .survivor-dot{width:4px;height:4px;border-radius:50%;overflow:hidden;background:#00eaff;color:transparent;box-shadow:0 0 6px 2px rgba(0,234,255,1);font-size:0}
+    .shelter-dot{display:grid;place-items:center;width:30px;height:30px;background:#68f2d0;color:#082019;border:3px solid #082019;box-shadow:0 0 0 3px #68f2d0,0 0 24px rgba(104,242,208,.6);font-weight:900}
+    .follower-dot{width:4px;height:4px;border-radius:50%;background:#00eaff;box-shadow:0 0 6px 2px rgba(0,234,255,.9)}
+    .target-ring{width:34px;height:34px;border:2px solid var(--acid);border-radius:50%;animation:ring 1s infinite}
+    .mine-dot{position:relative;width:20px;height:20px;border-radius:50%;background:#141414;border:3px solid #ff8a00;box-shadow:0 0 0 3px rgba(0,0,0,.72),0 0 14px rgba(255,138,0,.55)}
+    .mine-dot:before,.mine-dot:after{content:"";position:absolute;left:6px;top:-7px;width:2px;height:28px;background:#ff8a00;transform:rotate(45deg)}
+    .mine-dot:after{transform:rotate(-45deg)}
+    .mine-dot.arming{filter:grayscale(1);opacity:.62;animation:mineArm .3s steps(2,end) infinite}
+    @keyframes mineArm{50%{opacity:.25}}
+    .blast-core{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#fff7c7;color:#351000;font:900 7px/1 ui-monospace,monospace;box-shadow:0 0 12px 8px #fff3a6,0 0 30px 18px rgba(255,132,31,.92),0 0 60px 28px rgba(255,58,25,.6);animation:blastCore 1.8s cubic-bezier(.12,.68,.2,1) forwards;transform-origin:center}
+    @keyframes blastCore{0%{transform:scale(.18);opacity:1;filter:blur(0)}22%{transform:scale(2.7);opacity:1}55%{transform:scale(4.1);opacity:.72;filter:blur(2px)}100%{transform:scale(5.8);opacity:0;filter:blur(9px)}}
+    @keyframes ring{to{transform:scale(1.7);opacity:0}}
+    .leaflet-marker-icon{transition:filter .15s}
+    #map .walkable-road{filter:drop-shadow(0 0 1px rgba(112,245,211,.22));stroke-linecap:round;stroke-linejoin:round}
+    body.damage .vignette{box-shadow:inset 0 0 130px 48px rgba(145,0,0,.65)}
+    @media(max-width:700px){.hud{grid-template-columns:1fr}.stats{width:100%}.stat{flex:1;min-width:0}.brand{display:none}.stat-value{font-size:15px}.objective{font-size:13px}.card{padding:26px 22px}.legend{grid-template-columns:1fr}.legend div{padding:8px 0}.toast{top:105px}.leaflet-control-attribution{font-size:8px!important}}
+    @media(max-width:480px){.objective{bottom:calc(100px + env(safe-area-inset-bottom));width:calc(100vw - 32px)}}
+  </style>
+</head>
+<body>
+  <div id="app"><div id="map" aria-label="目黒駅周辺のゲームマップ"></div></div>
+  <div class="scan"></div><div class="vignette"></div>
+  <header class="hud" aria-live="polite">
+    <div class="brand"><i class="brand-mark"></i><div><h1>MEGURO // OUTBREAK</h1><small>SECTOR 35.632739, 139.713045</small></div></div>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">救助</span><div class="stat-value"><strong id="rescued">0</strong> / 3</div></div>
+      <div class="stat"><span class="stat-label">生命</span><div class="stat-value" id="healthText">100</div><div class="meter"><i id="healthFill"></i></div></div>
+      <div class="stat"><span class="stat-label">経過</span><div class="stat-value" id="timer">00:00</div></div>
+    </div>
+  </header>
+  <div class="edge-indicators" id="edgeIndicators" aria-hidden="true"></div>
+  <div class="route-key"><i></i>移動できる道</div>
+  <div class="objective"><b id="objectiveTitle">MISSION 01</b><span id="objectiveText">青緑色の道をタップして、生存者を3人救助する</span></div>
+  <button class="mine-action" id="mine" aria-label="現在地に地雷を設置。残り3個">地雷<span id="mineCount">3</span></button>
+  <button class="action" id="dash" aria-label="押している間、疾走する。外周は残りエネルギー" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">疾走</button>
+  <div class="toast" id="toast"></div>
+  <section class="modal" id="intro">
+    <div class="card">
+      <div class="eyebrow">TOKYO / MEGURO / 20:47</div>
+      <h2>救える命を<br>置いていくな。</h2>
+      <p>目黒駅周辺で感染が拡大。道路を選び、生存者3人を救助して開始地点の基地へ戻ってください。疾走エネルギーを使い切ると息切れして減速します。地雷は3個。感染者にも自分にも反応します。</p>
+      <div class="legend"><div><i style="background:#dfff00"></i>あなた</div><div><i style="background:#ffd84a"></i>救助対象</div><div><i style="background:#ff4b36"></i>感染者</div></div>
+      <button class="primary" id="start" disabled><span>地図データを取得中</span><span>→</span></button>
+      <div class="status" id="loadStatus">目黒周辺の道路を解析しています…</div>
+    </div>
+  </section>
+  <section class="modal hidden" id="result">
+    <div class="card">
+      <div class="eyebrow" id="resultLabel">EVACUATION COMPLETE</div>
+      <h2 id="resultTitle">全員、生存。</h2>
+      <p id="resultText"></p>
+      <button class="primary" id="restart"><span>もう一度プレイ</span><span>↻</span></button>
+    </div>
+  </section>
+  <script>
+  (()=>{
+    'use strict';
+    const CENTER=[35.632739,139.713045], LIMIT=3;
+    let map,walkableLayer,reachableNodes=new Set(),graph={nodes:new Map(),adj:new Map()},player,zombies=[],survivors=[],shelter,followers=[],mines=[],targetMarker=null,respawnTimers=[];
+    let started=false,ended=false,startTime=0,health=100,rescued=0,mineCount=3,lastFrame=0,lastHit=0,dashing=false,energy=100,exhausted=false,playerPath=[],playerStep=0,playerNode=null;
+    const $=s=>document.querySelector(s), toastEl=$('#toast'),edgeIndicators=$('#edgeIndicators');
+    const icon=(html,size,anchor)=>L.divIcon({className:'',html,iconSize:size,iconAnchor:anchor});
+    const playerIcon=()=>icon('<div class="player-dot"></div>',[4,4],[2,2]);
+    const zombieIcon=()=>icon('<div class="zombie-dot"></div>',[4,4],[2,2]);
+    const survivorIcon=()=>icon('<div class="survivor-dot"></div>',[4,4],[2,2]);
+    const shelterIcon=()=>icon('<div class="shelter-dot">E</div>',[30,30],[15,15]);
+    const followerIcon=()=>icon('<div class="follower-dot"></div>',[4,4],[2,2]);
+    const mineIcon=armed=>icon('<div class="mine-dot '+(armed?'':'arming')+'"></div>',[24,24],[12,12]);
+    const dist=(a,b)=>{const R=6371000,p=Math.PI/180,d1=(b[0]-a[0])*p,d2=(b[1]-a[1])*p,x=Math.sin(d1/2)**2+Math.cos(a[0]*p)*Math.cos(b[0]*p)*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+    function initMap(){map=L.map('map',{center:CENTER,zoom:17,zoomControl:false,attributionControl:true,dragging:false,doubleClickZoom:false,scrollWheelZoom:false,touchZoom:false,keyboard:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);map.createPane('walkablePane');map.getPane('walkablePane').style.zIndex='330';map.getPane('walkablePane').style.pointerEvents='none';walkableLayer=L.layerGroup().addTo(map)}
+    function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl.t);toastEl.t=setTimeout(()=>toastEl.classList.remove('show'),1800)}
+    async function loadRoads(){
+      const q='[out:json][timeout:20];way["highway"](around:600,'+CENTER[0]+','+CENTER[1]+');(._;>;);out body;';
+      try{const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));if(!r.ok)throw Error('network');buildGraph(await r.json());if(graph.nodes.size<30)throw Error('small');visualizeWalkable();ready('色の付いた道路を移動できます');}
+      catch(e){fallbackGraph();visualizeWalkable();ready('色の付いた簡易道路を移動できます');}
+    }
+    function buildGraph(data){
+      const raw=new Map();data.elements.filter(e=>e.type==='node').forEach(n=>raw.set(n.id,[n.lat,n.lon]));
+      const crossingIds=new Set(data.elements.filter(e=>e.type==='node'&&(e.tags?.highway==='crossing'||e.tags?.crossing)).map(n=>String(n.id)));
+      const blocked=new Set(['motorway','motorway_link','trunk','trunk_link','construction','proposed','raceway']);
+      const allowed=new Set(['primary','secondary','tertiary','residential','unclassified','living_street','service','pedestrian','footway','path','steps','track','cycleway']);
+      const isGameWay=w=>{const t=w.tags||{},h=t.highway,arterial=['primary','secondary','tertiary'].includes(h);if(!allowed.has(h)||blocked.has(h)||t.access==='private'||t.access==='no'||(!arterial&&t.foot==='no'))return false;if(h==='footway'&&t.footway==='sidewalk')return false;if(h==='service'&&['parking_aisle','driveway'].includes(t.service))return false;return true};
+      data.elements.filter(e=>e.type==='way'&&isGameWay(e)).forEach(w=>{
+        w.nodes.forEach(id=>{if(raw.has(id))graph.nodes.set(String(id),raw.get(id))});
+        for(let i=1;i<w.nodes.length;i++){const a=String(w.nodes[i-1]),b=String(w.nodes[i]);if(!raw.has(w.nodes[i-1])||!raw.has(w.nodes[i]))continue;addEdge(a,b,dist(raw.get(w.nodes[i-1]),raw.get(w.nodes[i])));}
+      });
+      crossingIds.forEach(id=>{
+        const p=graph.nodes.get(id);if(!p)return;
+        const nearby=[];
+        for(const [other,q] of graph.nodes){if(other===id)continue;const d=dist(p,q);if(d<=32)nearby.push([other,d])}
+        nearby.sort((a,b)=>a[1]-b[1]).slice(0,6).forEach(([other,d])=>addEdge(id,other,d));
+      });
+    }
+    function fallbackGraph(){graph={nodes:new Map(),adj:new Map()};const rows=9,cols=9,latStep=.00056,lngStep=.00069;for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const id=y+'-'+x,pt=[CENTER[0]+(y-4)*latStep,CENTER[1]+(x-4)*lngStep];graph.nodes.set(id,pt);if(x)addEdge(id,y+'-'+(x-1),62);if(y)addEdge(id,(y-1)+'-'+x,62)} }
+    function addEdge(a,b,w){if(!graph.adj.has(a))graph.adj.set(a,[]);if(!graph.adj.has(b))graph.adj.set(b,[]);graph.adj.get(a).push([b,w]);graph.adj.get(b).push([a,w])}
+    function nearest(pt){let best=null,bd=Infinity;for(const [id,p] of graph.nodes){const d=dist(pt,p);if(d<bd){bd=d;best=id}}return best}
+    function visualizeWalkable(){walkableLayer.clearLayers();reachableNodes=new Set();const start=nearest(CENTER),queue=start?[start]:[];if(start)reachableNodes.add(start);while(queue.length){const id=queue.shift();for(const [next] of graph.adj.get(id)||[]){if(!reachableNodes.has(next)){reachableNodes.add(next);queue.push(next)}}}const segments=[],seen=new Set();for(const a of reachableNodes){for(const [b] of graph.adj.get(a)||[]){if(!reachableNodes.has(b))continue;const key=a<b?a+'|'+b:b+'|'+a;if(seen.has(key))continue;seen.add(key);segments.push([graph.nodes.get(a),graph.nodes.get(b)])}}if(segments.length)L.polyline(segments,{pane:'walkablePane',className:'walkable-road',color:'#91c6ba',weight:3,opacity:.18,interactive:false}).addTo(walkableLayer)}
+    function route(start,goal){
+      if(!start||!goal)return[];const open=new Set([start]),came=new Map(),g=new Map([[start,0]]),f=new Map([[start,dist(graph.nodes.get(start),graph.nodes.get(goal))]]);
+      let guard=0;while(open.size&&guard++<8000){let cur=null,score=Infinity;for(const id of open){const s=f.get(id)??Infinity;if(s<score){score=s;cur=id}}if(cur===goal){const out=[cur];while(came.has(cur)){cur=came.get(cur);out.push(cur)}return out.reverse()}open.delete(cur);for(const [next,w] of graph.adj.get(cur)||[]){const ng=(g.get(cur)||0)+w;if(ng<(g.get(next)??Infinity)){came.set(next,cur);g.set(next,ng);f.set(next,ng+dist(graph.nodes.get(next),graph.nodes.get(goal)));open.add(next)}}}return[];
+    }
+    function ready(msg){$('#loadStatus').textContent=msg;const b=$('#start');b.disabled=false;b.querySelector('span').textContent='避難を開始する'}
+    function pickNodes(count,minD=100,awayFrom=CENTER){const source=reachableNodes.size?[...reachableNodes]:[...graph.nodes.keys()];const arr=source.filter(id=>dist(graph.nodes.get(id),awayFrom)>minD);const out=[];while(arr.length&&out.length<count){const i=Math.floor(Math.random()*arr.length),id=arr.splice(i,1)[0];if(out.every(o=>dist(graph.nodes.get(o),graph.nodes.get(id))>65))out.push(id)}return out}
+    function spawnZombie(id){const pos=graph.nodes.get(id);if(!pos)return;zombies.push({node:id,pos:[...pos],path:[],step:0,nextThink:0,marker:L.marker(pos,{icon:zombieIcon(),zIndexOffset:600}).addTo(map)})}
+    function scheduleZombieRespawn(){const timer=setTimeout(()=>{respawnTimers=respawnTimers.filter(t=>t!==timer);if(!started||ended)return;const id=pickNodes(1,180,player.pos)[0];if(id){spawnZombie(id);toast('別地点で感染反応を検知')}},30000);respawnTimers.push(timer)}
+    function resetGame(){
+      [...zombies,...survivors,...followers,...mines].forEach(x=>x.marker&&map.removeLayer(x.marker));edgeIndicators.innerHTML='';if(player?.marker)map.removeLayer(player.marker);if(shelter?.marker)map.removeLayer(shelter.marker);if(targetMarker){clearTimeout(targetMarker.timer);map.removeLayer(targetMarker);targetMarker=null}
+      respawnTimers.forEach(clearTimeout);respawnTimers=[];
+      health=100;rescued=0;mineCount=3;energy=100;exhausted=false;dashing=false;ended=false;playerPath=[];playerStep=0;zombies=[];survivors=[];followers=[];mines=[];updateMineButton();map.setView(CENTER,17,{animate:false});
+      playerNode=nearest(CENTER);const pp=graph.nodes.get(playerNode);player={pos:[...pp],marker:L.marker(pp,{icon:playerIcon(),zIndexOffset:800}).addTo(map),history:[]};
+      pickNodes(LIMIT,70,pp).forEach(id=>survivors.push({id,marker:L.marker(graph.nodes.get(id),{icon:survivorIcon(),zIndexOffset:500}).addTo(map)}));
+      const candidates=pickNodes(10,190,pp);shelter={id:playerNode,visitedAway:false,marker:L.marker(pp,{icon:shelterIcon(),zIndexOffset:450}).addTo(map)};
+      candidates.slice(0,5).forEach(spawnZombie);
+      updateHud();$('#objectiveTitle').textContent='MISSION 01';$('#objectiveText').textContent='青緑色の道をタップして、生存者を3人救助する';startTime=performance.now();lastFrame=startTime;started=true;requestAnimationFrame(loop);
+    }
+    function command(e){if(!started||ended)return;const goal=nearest([e.latlng.lat,e.latlng.lng]),start=nearest(player.pos);if(!reachableNodes.has(goal)){toast('色のない道には移動できません');return}const ids=route(start,goal);if(ids.length<2){toast('青緑色の道を選んでください');return}playerPath=ids.map(id=>graph.nodes.get(id));playerStep=1;playerNode=start;if(targetMarker){clearTimeout(targetMarker.timer);map.removeLayer(targetMarker)}targetMarker=L.marker(e.latlng,{icon:icon('<div class="target-ring"></div>',[34,34],[17,17]),interactive:false}).addTo(map);const current=targetMarker;current.timer=setTimeout(()=>{if(map.hasLayer(current))map.removeLayer(current);if(targetMarker===current)targetMarker=null},900)}
+    function moveToward(entity,target,speed,dt){const d=dist(entity.pos,target);if(d<.4){entity.pos=[...target];return true}const t=Math.min(1,speed*dt/d);entity.pos=[entity.pos[0]+(target[0]-entity.pos[0])*t,entity.pos[1]+(target[1]-entity.pos[1])*t];entity.marker.setLatLng(entity.pos);return t>=1}
+    function updateEnergy(dt){const moving=playerStep<playerPath.length;if(dashing&&!exhausted&&moving){energy=Math.max(0,energy-23*dt);if(energy<=0){energy=0;exhausted=true;dashing=false;dash.classList.remove('active');toast('息切れ — 移動速度が低下')}}else{energy=Math.min(100,energy+(exhausted?8:13)*dt);if(exhausted&&energy>=40){exhausted=false;toast('呼吸が整った')}}dash.style.setProperty('--energy',energy.toFixed(1));dash.setAttribute('aria-valuenow',Math.round(energy));dash.classList.toggle('low',energy<=20);dash.classList.toggle('exhausted',exhausted);dash.textContent=exhausted?'息切れ':'疾走'}
+    function updatePlayer(dt){const speed=exhausted?7:(dashing&&energy>0?24:14);if(playerStep<playerPath.length){if(moveToward(player,playerPath[playerStep],speed,dt)){playerNode=nearest(player.pos);playerStep++}}player.history.unshift([...player.pos]);if(player.history.length>80)player.history.pop();map.panTo(player.pos,{animate:false});}
+    function updateZombies(dt,now){for(const z of zombies){if(now>z.nextThink){z.node=nearest(z.pos);const target=nearest(player.pos);z.path=route(z.node,target).map(id=>graph.nodes.get(id));z.step=1;z.nextThink=now+1800+Math.random()*900}if(z.step<z.path.length&&moveToward(z,z.path[z.step],7.5,dt))z.step++;if(dist(z.pos,player.pos)<10&&now-lastHit>720){lastHit=now;health=Math.max(0,health-14);document.body.classList.add('damage');setTimeout(()=>document.body.classList.remove('damage'),170);if(health<=0)finish(false)}}}
+    function updateMineButton(){$('#mineCount').textContent=mineCount;mine.disabled=mineCount<=0;mine.setAttribute('aria-label','現在地に地雷を設置。残り'+mineCount+'個')}
+    function placeMine(){if(!started||ended||mineCount<=0)return;const m={pos:[...player.pos],armed:false,marker:L.marker(player.pos,{icon:mineIcon(false),zIndexOffset:420}).addTo(map)};mines.push(m);mineCount--;updateMineButton();toast('地雷設置 — 2秒後に起動');m.armTimer=setTimeout(()=>{if(mines.includes(m)){m.armed=true;m.marker.setIcon(mineIcon(true));toast('地雷が起動した')}},2000)}
+    function animateBlast(layer,start){const elapsed=performance.now()-start,t=Math.min(1,elapsed/1800),ease=1-Math.pow(1-t,3);layer.setRadius(8+52*ease);layer.setStyle({opacity:.9*(1-t),fillOpacity:.5*Math.pow(1-t,1.4),weight:4-2*t});if(t<1)requestAnimationFrame(()=>animateBlast(layer,start));else if(map.hasLayer(layer))map.removeLayer(layer)}
+    function explodeMine(m){clearTimeout(m.armTimer);const index=mines.indexOf(m);if(index>=0)mines.splice(index,1);if(map.hasLayer(m.marker))map.removeLayer(m.marker);const blast=L.circle(m.pos,{radius:8,color:'#ffb02e',weight:4,fillColor:'#ff4b1f',fillOpacity:.5,interactive:false}).addTo(map);animateBlast(blast,performance.now());const core=L.marker(m.pos,{icon:icon('<div class="blast-core">BOOM</div>',[30,30],[15,15]),interactive:false,zIndexOffset:1000}).addTo(map);setTimeout(()=>map.hasLayer(core)&&map.removeLayer(core),1850);let kills=0;zombies=zombies.filter(z=>{if(dist(z.pos,m.pos)<=30){map.removeLayer(z.marker);kills++;scheduleZombieRespawn();return false}return true});const selfHit=dist(player.pos,m.pos)<=30;if(selfHit){health=Math.max(0,health-60);document.body.classList.add('damage');setTimeout(()=>document.body.classList.remove('damage'),900)}toast(selfHit?'爆発に巻き込まれた −60':kills?'感染者を'+kills+'体排除 — 30秒後に増殖':'地雷が爆発');if(health<=0)finish(false)}
+    function checkMines(){for(const m of [...mines]){if(!m.armed)continue;const playerTriggered=dist(player.pos,m.pos)<10;const zombieTriggered=zombies.some(z=>dist(z.pos,m.pos)<10);if(playerTriggered||zombieTriggered)explodeMine(m)}}
+    function updateIndicators(){const size=map.getSize(),mobile=size.x<700,left=44,right=size.x-44,top=mobile?122:84,bottom=Math.max(top+60,size.y-(size.x<480?184:100)),cx=size.x/2,cy=(top+bottom)/2;const outside=[];for(const s of survivors){const p=map.latLngToContainerPoint(graph.nodes.get(s.id));const inside=p.x>=left&&p.x<=right&&p.y>=top&&p.y<=bottom;if(inside){if(s.indicator)s.indicator.style.display='none';continue}outside.push({s,p})}outside.forEach(({s,p},index)=>{if(!s.indicator){s.indicator=document.createElement('div');s.indicator.className='edge-indicator';s.indicator.innerHTML='<i></i><b>+</b><span></span>';edgeIndicators.appendChild(s.indicator)}const dx=p.x-cx,dy=p.y-cy,tx=dx>0?(right-cx)/dx:dx<0?(left-cx)/dx:Infinity,ty=dy>0?(bottom-cy)/dy:dy<0?(top-cy)/dy:Infinity,scale=Math.min(tx,ty),angle=Math.atan2(dy,dx),spread=(index-(outside.length-1)/2)*20;let x=cx+dx*scale+Math.cos(angle+Math.PI/2)*spread,y=cy+dy*scale+Math.sin(angle+Math.PI/2)*spread;x=Math.max(left,Math.min(right,x));y=Math.max(top,Math.min(bottom,y));s.indicator.style.display='block';s.indicator.style.left=x+'px';s.indicator.style.top=y+'px';s.indicator.querySelector('i').style.transform='rotate('+angle+'rad)';const meters=dist(player.pos,graph.nodes.get(s.id));s.indicator.querySelector('span').textContent=(meters<100?Math.round(meters/5)*5:Math.round(meters/10)*10)+'m'})}
+    function checkRescue(){for(let i=survivors.length-1;i>=0;i--){if(dist(player.pos,graph.nodes.get(survivors[i].id))<16){map.removeLayer(survivors[i].marker);if(survivors[i].indicator)survivors[i].indicator.remove();survivors.splice(i,1);rescued++;const f={marker:L.marker(player.pos,{icon:followerIcon(),zIndexOffset:700}).addTo(map),delay:25+rescued*13};followers.push(f);toast('生存者を救助 '+rescued+' / '+LIMIT);if(rescued===LIMIT){$('#objectiveTitle').textContent='FINAL MISSION';$('#objectiveText').textContent='全員を連れて、開始地点の基地へ戻る'}}}if(shelter){const baseDistance=dist(player.pos,graph.nodes.get(shelter.id));if(baseDistance>35)shelter.visitedAway=true;if(baseDistance<18){if(rescued===LIMIT)finish(true);else if(shelter.visitedAway&&!shelter.warned){shelter.warned=true;toast('まだ救助を待っている人がいます');setTimeout(()=>shelter.warned=false,2500)}}}}
+    function updateFollowers(){followers.forEach((f,i)=>{const p=player.history[Math.min(player.history.length-1,f.delay+i*7)];if(p)f.marker.setLatLng(p)})}
+    function updateHud(){$('#rescued').textContent=rescued;$('#healthText').textContent=Math.ceil(health);$('#healthFill').style.width=health+'%';if(started){const s=Math.floor((performance.now()-startTime)/1000);$('#timer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}}
+    function loop(now){if(ended||!started)return;const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;updateEnergy(dt);updatePlayer(dt);updateZombies(dt,now);checkMines();updateFollowers();updateIndicators();checkRescue();updateHud();requestAnimationFrame(loop)}
+    function finish(win){if(ended)return;ended=true;const secs=Math.floor((performance.now()-startTime)/1000);$('#resultLabel').textContent=win?'EVACUATION COMPLETE':'SIGNAL LOST';$('#resultTitle').textContent=win?'全員、生存。':'救助、失敗。';$('#resultText').textContent=win?'生存者'+rescued+'人を救助し、'+Math.floor(secs/60)+'分'+secs%60+'秒で避難しました。':'感染者に囲まれました。ルートを変え、疾走を使って距離を取ってください。';$('#result').classList.remove('hidden')}
+    $('#start').addEventListener('click',()=>{$('#intro').classList.add('hidden');resetGame()});$('#restart').addEventListener('click',()=>{$('#result').classList.add('hidden');resetGame()});
+    const mine=$('#mine');mine.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();placeMine()});
+    const dash=$('#dash');['pointerdown','touchstart'].forEach(ev=>dash.addEventListener(ev,e=>{e.preventDefault();if(!exhausted&&energy>0){dashing=true;dash.classList.add('active')}},{passive:false}));['pointerup','pointercancel','touchend'].forEach(ev=>window.addEventListener(ev,()=>{dashing=false;dash.classList.remove('active')}));
+    window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();if(!exhausted&&energy>0){dashing=true;dash.classList.add('active')}}});window.addEventListener('keyup',e=>{if(e.code==='Space'){dashing=false;dash.classList.remove('active')}});
+    initMap();map.on('click',command);loadRoads();
+  })();
+  </script>
+</body>
+</html>
