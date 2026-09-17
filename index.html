@@ -208,7 +208,22 @@
     function moveToward(entity,target,speed,dt){const d=dist(entity.pos,target);if(d<.4){entity.pos=[...target];return true}const t=Math.min(1,speed*dt/d);entity.pos=[entity.pos[0]+(target[0]-entity.pos[0])*t,entity.pos[1]+(target[1]-entity.pos[1])*t];entity.marker.setLatLng(entity.pos);return t>=1}
     function updateEnergy(dt){const moving=playerStep<playerPath.length;if(dashing&&!exhausted&&moving){energy=Math.max(0,energy-23*dt);if(energy<=0){energy=0;exhausted=true;dashing=false;dash.classList.remove('active');toast('息切れ — 移動速度が低下')}}else{energy=Math.min(100,energy+(exhausted?8:13)*dt);if(exhausted&&energy>=40){exhausted=false;toast('呼吸が整った')}}dash.style.setProperty('--energy',energy.toFixed(1));dash.setAttribute('aria-valuenow',Math.round(energy));dash.classList.toggle('low',energy<=20);dash.classList.toggle('exhausted',exhausted);dash.textContent=exhausted?'息切れ':'疾走'}
     function updatePlayer(dt){const speed=exhausted?7:(dashing&&energy>0?24:14);if(playerStep<playerPath.length){if(moveToward(player,playerPath[playerStep],speed,dt)){playerNode=nearest(player.pos);playerStep++}}player.history.unshift([...player.pos]);if(player.history.length>80)player.history.pop();map.panTo(player.pos,{animate:false});const sector=sectorAt(player.pos);if(sector&&sector.id!==activeSectorId&&!sectorLoading)ensureSectorsAround(player.pos)}
-    function updateZombies(dt,now){for(const z of zombies){if(now>z.nextThink){z.node=nearest(z.pos);const target=nearest(player.pos);z.path=route(z.node,target).map(id=>graph.nodes.get(id));z.step=1;z.nextThink=now+1800+Math.random()*900}if(z.step<z.path.length&&moveToward(z,z.path[z.step],7.5,dt))z.step++;if(dist(z.pos,player.pos)<10&&now-lastHit>720){lastHit=now;health=Math.max(0,health-14);document.body.classList.add('damage');setTimeout(()=>document.body.classList.remove('damage'),170);if(health<=0)finish(false)}}}
+    function updateZombies(dt,now){for(const z of zombies){
+      // Finish the current road segment before replanning. The nearest node may
+      // already be ahead of us; skipping it can strand a zombie before the goal.
+      if(z.step>=z.path.length&&now>=z.nextThink){
+        z.node=nearest(z.pos);const target=nearest(player.pos),ids=route(z.node,target);
+        z.path=ids.map(id=>graph.nodes.get(id));z.step=0;
+        while(z.step<z.path.length&&dist(z.pos,z.path[z.step])<.4)z.step++;
+        z.nextThink=now+500;
+      }
+      if(z.step<z.path.length&&moveToward(z,z.path[z.step],7.5,dt)){
+        z.node=nearest(z.path[z.step]);z.step++;
+        // Reconsider the player's destination at junctions, never mid-edge.
+        if(now>=z.nextThink){z.path=[];z.step=0;}
+      }
+      if(dist(z.pos,player.pos)<10&&now-lastHit>720){lastHit=now;health=Math.max(0,health-14);document.body.classList.add('damage');setTimeout(()=>document.body.classList.remove('damage'),170);if(health<=0)finish(false)}
+    }}
     function updateMineButton(){$('#mineCount').textContent=mineCount;mine.disabled=mineCount<=0;mine.setAttribute('aria-label','現在地に地雷を設置。残り'+mineCount+'個')}
     function placeMine(){if(!started||ended||mineCount<=0)return;const m={pos:[...player.pos],armed:false,marker:L.marker(player.pos,{icon:mineIcon(false),zIndexOffset:420}).addTo(map)};mines.push(m);mineCount--;updateMineButton();toast('地雷設置 — 2秒後に起動');m.armTimer=setTimeout(()=>{if(mines.includes(m)){m.armed=true;m.marker.setIcon(mineIcon(true));toast('地雷が起動した')}},2000)}
     function animateBlast(layer,start){const elapsed=performance.now()-start,t=Math.min(1,elapsed/1800),ease=1-Math.pow(1-t,3);layer.setRadius(8+52*ease);layer.setStyle({opacity:.9*(1-t),fillOpacity:.5*Math.pow(1-t,1.4),weight:4-2*t});if(t<1)requestAnimationFrame(()=>animateBlast(layer,start));else if(map.hasLayer(layer))map.removeLayer(layer)}
