@@ -147,8 +147,16 @@
     function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl.t);toastEl.t=setTimeout(()=>toastEl.classList.remove('show'),1800)}
     async function loadRoads(){
       const q='[out:json][timeout:20];way["highway"](around:600,'+CENTER[0]+','+CENTER[1]+');(._;>;);out body;';
-      try{const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));if(!r.ok)throw Error('network');buildGraph(await r.json());if(graph.nodes.size<30)throw Error('small');visualizeWalkable();ready('色の付いた道路を移動できます');}
-      catch(e){fallbackGraph();visualizeWalkable();ready('色の付いた簡易道路を移動できます');}
+      const sources=[
+        ()=>fetch('./roads.json',{cache:'no-store'}),
+        ()=>fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:q})}),
+        ()=>fetch('https://overpass.kumi.systems/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:q})})
+      ];
+      for(const getRoads of sources){
+        try{const r=await getRoads();if(!r.ok)throw Error('network');graph={nodes:new Map(),adj:new Map()};buildGraph(await r.json());if(graph.nodes.size<30)throw Error('small');visualizeWalkable();ready('実際の道路に沿って移動できます');return;}
+        catch(e){console.warn('道路データを読み込めませんでした',e);}
+      }
+      $('#loadStatus').textContent='道路データを取得できませんでした。再読み込みしてください。';
     }
     function buildGraph(data){
       const raw=new Map();data.elements.filter(e=>e.type==='node').forEach(n=>raw.set(n.id,[n.lat,n.lon]));
@@ -167,7 +175,6 @@
         nearby.sort((a,b)=>a[1]-b[1]).slice(0,6).forEach(([other,d])=>addEdge(id,other,d));
       });
     }
-    function fallbackGraph(){graph={nodes:new Map(),adj:new Map()};const rows=9,cols=9,latStep=.00056,lngStep=.00069;for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const id=y+'-'+x,pt=[CENTER[0]+(y-4)*latStep,CENTER[1]+(x-4)*lngStep];graph.nodes.set(id,pt);if(x)addEdge(id,y+'-'+(x-1),62);if(y)addEdge(id,(y-1)+'-'+x,62)} }
     function addEdge(a,b,w){if(!graph.adj.has(a))graph.adj.set(a,[]);if(!graph.adj.has(b))graph.adj.set(b,[]);graph.adj.get(a).push([b,w]);graph.adj.get(b).push([a,w])}
     function nearest(pt){let best=null,bd=Infinity;for(const [id,p] of graph.nodes){const d=dist(pt,p);if(d<bd){bd=d;best=id}}return best}
     function visualizeWalkable(){walkableLayer.clearLayers();reachableNodes=new Set();const start=nearest(CENTER),queue=start?[start]:[];if(start)reachableNodes.add(start);while(queue.length){const id=queue.shift();for(const [next] of graph.adj.get(id)||[]){if(!reachableNodes.has(next)){reachableNodes.add(next);queue.push(next)}}}const segments=[],seen=new Set();for(const a of reachableNodes){for(const [b] of graph.adj.get(a)||[]){if(!reachableNodes.has(b))continue;const key=a<b?a+'|'+b:b+'|'+a;if(seen.has(key))continue;seen.add(key);segments.push([graph.nodes.get(a),graph.nodes.get(b)])}}if(segments.length)L.polyline(segments,{pane:'walkablePane',className:'walkable-road',color:'#91c6ba',weight:3,opacity:.18,interactive:false}).addTo(walkableLayer)}
