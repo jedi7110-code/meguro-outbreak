@@ -1,0 +1,50 @@
+/* PAX CREATION's warm neutrals and condensed typography, adapted for night play. */
+:root{--ink:#eee9df;--muted:#b3aca1;--night:#1c1b19;--panel:rgba(30,29,26,.94);--line:rgba(238,233,223,.17);--acid:#e0cfaa;--danger:#df8b79;--cyan:#a6c9bf;--english:"Barlow Condensed","Arial Narrow",sans-serif}
+html,body,#app,#map{font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,sans-serif}
+button,a{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:5px}
+.leaflet-tile-pane{filter:grayscale(1) brightness(.48) contrast(1.2) sepia(.18)}
+.scan{display:none}
+.vignette{box-shadow:inset 0 0 140px 20px rgba(16,14,11,.5)}
+.brand,.stats,.route-key,.objective{border-color:var(--line)}
+.brand{padding:12px 16px;gap:12px}
+.brand-mark{width:5px;height:24px;background:var(--acid);box-shadow:none}
+.brand h1{font-family:var(--english);font-size:21px;font-weight:500;letter-spacing:.06em}
+.brand small{font-family:var(--english);font-size:11px;letter-spacing:.13em}
+.stat-label{letter-spacing:.06em;font-weight:400}
+.stat-value{font-family:var(--english);font-weight:500;font-size:21px}
+.meter{height:2px;background:#48443e}
+.objective{border-left-width:1px;padding:16px 18px}
+.objective b{font-family:var(--english);font-size:14px;font-weight:500;letter-spacing:.16em}
+.objective span{font-size:13px;line-height:1.8}
+.route-key{top:max(94px,calc(env(safe-area-inset-top) + 94px));font-size:11px;font-weight:400;color:var(--muted)}
+.route-key i{height:2px;box-shadow:none}
+.modal{background:rgba(24,23,21,.82);backdrop-filter:blur(5px);overflow-y:auto;padding:28px 20px}
+.modal.hidden{visibility:hidden}
+.card{width:min(640px,100%);padding:40px 48px;background:#22211e;border:1px solid var(--line);box-shadow:0 20px 80px rgba(0,0,0,.2);margin:auto}
+.site-signature{display:inline-flex;align-items:center;gap:14px;color:var(--ink);text-decoration:none;font-family:var(--english);font-size:25px;font-weight:400;letter-spacing:.025em;margin-bottom:34px}
+.site-signature span{font-size:30px;font-weight:400;color:var(--muted)}
+.site-signature:hover{color:var(--acid)}
+.game-title{font-family:var(--english);font-size:16px;font-weight:400;letter-spacing:.18em;margin-bottom:10px;color:var(--acid)}
+.eyebrow{font-family:var(--english);font-weight:400;font-size:12px;letter-spacing:.16em;color:var(--muted);margin-bottom:22px}
+.card h2{font-size:clamp(32px,5vw,52px);font-weight:500;line-height:1.4;letter-spacing:.015em;margin:0 0 24px}
+.card p{color:var(--muted);font-size:13px;line-height:2;max-width:none}
+.legend{gap:16px;margin:26px 0}
+.legend div{font-size:11px;padding-top:12px}
+.legend-player{background:#dfff00}
+.legend-survivor{background:#00eaff}
+.legend-zombie{background:#ff2bd6}
+.primary{background:var(--ink);color:#28251f;font-size:13px;font-weight:500;padding:18px 20px;letter-spacing:.09em;transition:background .2s}
+.primary:hover{background:var(--acid);filter:none}
+.primary span:last-child{font-size:20px;font-weight:400}
+.status{font:10px/1.8 "Noto Sans JP",sans-serif;color:var(--muted);margin-top:14px}
+.action{--ring-color:#dfff00;color:#dfff00}
+.action:active,.action.active{background:#dfff00}
+.toast{font-size:12px;font-weight:500;max-width:calc(100vw - 32px);white-space:normal;text-align:center}
+/* Keep gameplay markers vivid and independent of the site's neutral palette. */
+.player-dot{background:#dfff00}
+.shelter-dot{background:var(--cyan);color:#222b27;border-color:#222b27;box-shadow:0 0 0 2px var(--cyan);font-family:var(--english);font-weight:500}
+.edge-indicator span{font-family:var(--english);font-size:12px;font-weight:500}
+@media(max-width:700px){.card{padding:28px 24px}.site-signature{margin-bottom:24px;font-size:23px}.card h2{font-size:36px}.legend{grid-template-columns:repeat(3,1fr);gap:8px}.route-key{top:88px}.stat-value{font-size:20px}}
+@media(max-width:380px){.card{padding:24px 20px}.card h2{font-size:30px}.card p{font-size:12px}.site-signature{margin-bottom:20px}.legend{margin:18px 0}}
+@media(prefers-reduced-motion:reduce){.primary,.modal{transition:none}.action.low{animation:none}}

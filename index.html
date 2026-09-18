@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#090b0d">
+  <meta name="theme-color" content="#1c1b19">
   <title>MEGURO // OUTBREAK</title>
   <meta name="description" content="目黒の街を舞台に、生存者を救助して避難所を目指す地図型サバイバルゲームのプロトタイプ。">
   <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
@@ -92,12 +95,13 @@
     @media(max-width:700px){.hud{grid-template-columns:1fr}.stats{width:100%}.stat{flex:1;min-width:0}.brand{display:none}.stat-value{font-size:15px}.objective{font-size:13px}.card{padding:26px 22px}.legend{grid-template-columns:1fr}.legend div{padding:8px 0}.toast{top:105px}.leaflet-control-attribution{font-size:8px!important}}
     @media(max-width:480px){.objective{bottom:calc(100px + env(safe-area-inset-bottom));width:calc(100vw - 32px)}}
   </style>
+  <link rel="stylesheet" href="./theme.css?v=4">
 </head>
 <body>
   <div id="app"><div id="map" aria-label="目黒駅周辺のゲームマップ"></div></div>
   <div class="scan"></div><div class="vignette"></div>
   <header class="hud" aria-live="polite">
-    <div class="brand"><i class="brand-mark"></i><div><h1>MEGURO // OUTBREAK</h1><small>SECTOR 35.632739, 139.713045</small></div></div>
+    <div class="brand"><i class="brand-mark"></i><div><h1>MEGURO / OUTBREAK</h1><small>PAX CREATION · TOKYO</small></div></div>
     <div class="stats">
       <div class="stat"><span class="stat-label">救助</span><div class="stat-value"><strong id="rescued">0</strong> / 8</div></div>
       <div class="stat"><span class="stat-label">生命</span><div class="stat-value" id="healthText">100</div><div class="meter"><i id="healthFill"></i></div></div>
@@ -112,10 +116,12 @@
   <div class="toast" id="toast"></div>
   <section class="modal" id="intro">
     <div class="card">
+      <a class="site-signature" href="https://www.paxcreation.com/" aria-label="PAX CREATION メインサイトへ">PAX CREATION <span>／</span></a>
+      <div class="game-title">MEGURO / OUTBREAK</div>
       <div class="eyebrow">TOKYO / MEGURO / 20:47</div>
       <h2>救える命を<br>置いていくな。</h2>
       <p>目黒駅周辺で感染が拡大。道路を選び、近くの生存者8人を救助して開始地点の基地へ戻ってください。疾走エネルギーを使い切ると息切れして減速します。地雷は3個。感染者にも自分にも反応します。</p>
-      <div class="legend"><div><i style="background:#dfff00"></i>あなた</div><div><i style="background:#ffd84a"></i>救助対象</div><div><i style="background:#ff4b36"></i>感染者</div></div>
+      <div class="legend"><div><i class="legend-player"></i>あなた</div><div><i class="legend-survivor"></i>救助対象</div><div><i class="legend-zombie"></i>感染者</div></div>
       <button class="primary" id="start" disabled><span>地図データを取得中</span><span>→</span></button>
       <div class="status" id="loadStatus">目黒周辺の道路を解析しています…</div>
     </div>
