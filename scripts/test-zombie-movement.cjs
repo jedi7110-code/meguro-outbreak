@@ -2,7 +2,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname, '../index.html'), 'utf8');
-const source = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+const source = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+  .map(match => match[1])
+  .find(body => body.includes('function updateZombies'));
+assert(source, 'game script not found');
 new Function(source);
 function extract(name) {
   const start = source.indexOf('function ' + name + '(');

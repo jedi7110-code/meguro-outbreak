@@ -43,7 +43,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset
 .toast{font-size:12px;font-weight:500;max-width:calc(100vw - 32px);white-space:normal;text-align:center}
 /* Keep gameplay markers vivid and independent of the site's neutral palette. */
 .player-dot{background:#dfff00}
-.shelter-dot{background:var(--cyan);color:#222b27;border-color:#222b27;box-shadow:0 0 0 2px var(--cyan);font-family:var(--english);font-weight:500}
+.shelter-dot{background:rgba(0,234,255,.04);border-color:#00eaff;box-shadow:0 0 12px rgba(0,234,255,.42)}
+.shelter-dot span{font-family:"Noto Sans JP",sans-serif;font-weight:500}
 .edge-indicator span{font-family:var(--english);font-size:12px;font-weight:500}
 @media(max-width:700px){.card{padding:28px 24px}.site-signature{margin-bottom:24px;font-size:23px}.card h2{font-size:36px}.legend{grid-template-columns:repeat(3,1fr);gap:8px}.route-key{top:88px}.stat-value{font-size:20px}}
 @media(max-width:380px){.card{padding:24px 20px}.card h2{font-size:30px}.card p{font-size:12px}.site-signature{margin-bottom:20px}.legend{margin:18px 0}}

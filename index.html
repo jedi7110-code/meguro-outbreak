@@ -85,7 +85,8 @@
     .zombie-dot{width:4px;height:4px;border-radius:50%;background:#ff2bd6;box-shadow:0 0 5px 2px rgba(255,43,214,.9);animation:pulse 1.2s infinite}
     @keyframes pulse{50%{opacity:.65;box-shadow:0 0 8px 3px rgba(255,43,214,1)}}
     .survivor-dot{width:4px;height:4px;border-radius:50%;overflow:hidden;background:#00eaff;color:transparent;box-shadow:0 0 6px 2px rgba(0,234,255,1);font-size:0}
-    .shelter-dot{display:grid;place-items:center;width:30px;height:30px;background:#68f2d0;color:#082019;border:3px solid #082019;box-shadow:0 0 0 3px #68f2d0,0 0 24px rgba(104,242,208,.6);font-weight:900}
+    .shelter-dot{position:relative;width:44px;height:44px;margin:10px;border-radius:50%;background:rgba(0,234,255,.05);border:1px dashed #00eaff;box-shadow:0 0 12px rgba(0,234,255,.45)}
+    .shelter-dot span{position:absolute;left:50%;top:-19px;transform:translateX(-50%);padding:2px 5px;background:rgba(8,10,11,.9);border:1px solid rgba(0,234,255,.55);color:#8ff7ff;font:700 10px/1 ui-monospace,monospace;letter-spacing:.08em;white-space:nowrap}
     .follower-dot{width:4px;height:4px;border-radius:50%;background:#00eaff;box-shadow:0 0 6px 2px rgba(0,234,255,.9)}
     .target-ring{width:34px;height:34px;border:2px solid var(--acid);border-radius:50%;animation:ring 1s infinite}
     .mine-dot{position:relative;width:20px;height:20px;border-radius:50%;background:#141414;border:3px solid #ff8a00;box-shadow:0 0 0 3px rgba(0,0,0,.72),0 0 14px rgba(255,138,0,.55)}
@@ -102,7 +103,7 @@
     @media(max-width:700px){.hud{grid-template-columns:1fr}.stats{width:100%}.stat{flex:1;min-width:0}.brand{display:none}.stat-value{font-size:15px}.objective{font-size:13px}.card{padding:26px 22px}.legend{grid-template-columns:1fr}.legend div{padding:8px 0}.toast{top:105px}.leaflet-control-attribution{font-size:8px!important}}
     @media(max-width:480px){.objective{bottom:calc(100px + env(safe-area-inset-bottom));width:calc(100vw - 32px)}}
   </style>
-  <link rel="stylesheet" href="./theme.css?v=4">
+  <link rel="stylesheet" href="./theme.css?v=5">
 </head>
 <body>
   <!-- Google Tag Manager (noscript) -->
@@ -158,7 +159,7 @@
     const playerIcon=()=>icon('<div class="player-dot"></div>',[4,4],[2,2]);
     const zombieIcon=()=>icon('<div class="zombie-dot"></div>',[4,4],[2,2]);
     const survivorIcon=()=>icon('<div class="survivor-dot"></div>',[4,4],[2,2]);
-    const shelterIcon=()=>icon('<div class="shelter-dot">E</div>',[30,30],[15,15]);
+    const shelterIcon=()=>icon('<div class="shelter-dot"><span>基地</span></div>',[64,64],[32,32]);
     const followerIcon=()=>icon('<div class="follower-dot"></div>',[4,4],[2,2]);
     const mineIcon=armed=>icon('<div class="mine-dot '+(armed?'':'arming')+'"></div>',[24,24],[12,12]);
     const dist=(a,b)=>{const R=6371000,p=Math.PI/180,d1=(b[0]-a[0])*p,d2=(b[1]-a[1])*p,x=Math.sin(d1/2)**2+Math.cos(a[0]*p)*Math.cos(b[0]*p)*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
@@ -219,7 +220,7 @@
       pickNodes(LIMIT,60,pp,450,35).forEach(id=>{const pos=graph.nodes.get(id);survivors.push({id,pos:[...pos],marker:L.marker(pos,{icon:survivorIcon(),zIndexOffset:500}).addTo(map)})});
       const candidates=pickNodes(ZOMBIE_COUNT,190,pp,900,45);shelter={id:playerNode,pos:[...pp],visitedAway:false,marker:L.marker(pp,{icon:shelterIcon(),zIndexOffset:450}).addTo(map)};
       candidates.forEach(spawnZombie);
-      updateHud();$('#objectiveTitle').textContent='MISSION 01';$('#objectiveText').textContent='青緑色の道をタップして、生存者を8人救助する';startTime=performance.now();lastFrame=startTime;started=true;requestAnimationFrame(loop);
+      updateHud();$('#objectiveTitle').textContent='MISSION 01';$('#objectiveText').textContent='青緑色の道をタップして移動し、水色の救助対象8人を助ける';startTime=performance.now();lastFrame=startTime;started=true;setTimeout(()=>toast('青緑色の道をタップして移動'),120);requestAnimationFrame(loop);
     }
     function command(e){if(!started||ended)return;if(!insideMovementBounds([e.latlng.lat,e.latlng.lng])){toast('赤い点線の外には移動できません');return;}const goal=nearest([e.latlng.lat,e.latlng.lng]),start=nearest(player.pos);if(!reachableNodes.has(goal)){toast('色のない道には移動できません');return}const ids=route(start,goal);if(ids.length<2){toast('青緑色の道を選んでください');return}playerPath=ids.map(id=>graph.nodes.get(id));playerStep=1;playerNode=start;if(targetMarker){clearTimeout(targetMarker.timer);map.removeLayer(targetMarker)}targetMarker=L.marker(e.latlng,{icon:icon('<div class="target-ring"></div>',[34,34],[17,17]),interactive:false}).addTo(map);const current=targetMarker;current.timer=setTimeout(()=>{if(map.hasLayer(current))map.removeLayer(current);if(targetMarker===current)targetMarker=null},900)}
     function moveToward(entity,target,speed,dt){const d=dist(entity.pos,target);if(d<.4){entity.pos=[...target];return true}const t=Math.min(1,speed*dt/d);entity.pos=[entity.pos[0]+(target[0]-entity.pos[0])*t,entity.pos[1]+(target[1]-entity.pos[1])*t];entity.marker.setLatLng(entity.pos);return t>=1}
