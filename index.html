@@ -41,9 +41,9 @@
     .meter{height:4px;background:#303638;margin-top:7px;overflow:hidden}
     .meter>i{display:block;height:100%;width:100%;background:var(--acid);transition:width .16s linear}
     #healthFill{background:var(--danger)}
-    .objective{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));pointer-events:none;width:min(390px,calc(100vw - 190px));background:var(--panel);border-left:3px solid var(--acid);padding:13px 15px;backdrop-filter:blur(12px)}
+    .objective{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));pointer-events:none;width:min(520px,calc(100vw - 190px));background:var(--panel);border-left:3px solid var(--acid);padding:13px 15px;backdrop-filter:blur(12px)}
     .objective b{display:block;font-size:12px;letter-spacing:.14em;color:var(--acid);margin-bottom:5px}
-    .objective span{font-size:14px;line-height:1.5}
+    .objective span{font-size:14px;line-height:1.5;white-space:nowrap}
     .route-key{position:fixed;z-index:700;left:max(16px,env(safe-area-inset-left));top:max(80px,calc(env(safe-area-inset-top) + 80px));display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--panel);border:1px solid var(--line);color:#c7d4cf;font-size:12px;font-weight:700;letter-spacing:.06em;backdrop-filter:blur(10px);pointer-events:none}
     .route-key i{display:block;width:25px;height:4px;border-radius:4px;background:var(--cyan);box-shadow:0 0 9px rgba(112,245,211,.85)}
     .edge-indicators{position:fixed;z-index:706;inset:0;pointer-events:none;overflow:hidden}
@@ -100,7 +100,7 @@
     .leaflet-marker-icon{transition:filter .15s}
     #map .walkable-road{filter:drop-shadow(0 0 1px rgba(112,245,211,.22));stroke-linecap:round;stroke-linejoin:round}
     body.damage .vignette{box-shadow:inset 0 0 130px 48px rgba(145,0,0,.65)}
-    @media(max-width:700px){.hud{grid-template-columns:1fr}.stats{width:100%}.stat{flex:1;min-width:0}.brand{display:none}.stat-value{font-size:15px}.objective{font-size:13px}.card{padding:26px 22px}.legend{grid-template-columns:1fr}.legend div{padding:8px 0}.toast{top:105px}.leaflet-control-attribution{font-size:8px!important}}
+    @media(max-width:700px){.hud{grid-template-columns:1fr}.stats{width:100%}.stat{flex:1;min-width:0}.brand{display:none}.stat-value{font-size:15px}.objective{font-size:13px}.objective span{white-space:normal}.card{padding:26px 22px}.legend{grid-template-columns:1fr}.legend div{padding:8px 0}.toast{top:105px}.leaflet-control-attribution{font-size:8px!important}}
     @media(max-width:480px){.objective{bottom:calc(100px + env(safe-area-inset-bottom));width:calc(100vw - 32px)}}
   </style>
   <link rel="stylesheet" href="./theme.css?v=5">
